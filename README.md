@@ -37,7 +37,7 @@ jobs:
 
 ```
 
-Use an immutable action tag or commit SHA in production. The `v1` tag will be created when the action has its first major release.
+Use an immutable action tag or commit SHA in production. The `v1` tag tracks the latest compatible v1 release.
 
 To commit the change, stage the resolved `project-path` for your chosen engine, then commit and push it using the credentials and release policy that suit your repository.
 
@@ -308,3 +308,9 @@ git diff --exit-code -- dist
 ```
 
 `dist/` is committed because GitHub Actions executes the bundled JavaScript, not the TypeScript source.
+
+## Releasing this action
+
+The `CD` workflow releases every Conventional Commit pushed to `main`. Breaking changes create a major release, `feat` commits create a minor release, and other Conventional Commit types create a patch release. CD runs the test suite and verifies that `dist/` is current before it changes anything.
+
+CD owns the `package.json` and `package-lock.json` versions. It commits their release version, creates the matching immutable `vX.Y.Z` tag and GitHub Release, then force-updates the floating major tag such as `v1`. The action's source version and its Marketplace release therefore remain aligned.

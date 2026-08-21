@@ -1,0 +1,72 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - id: release-plan
+        name: Determine release version
+        run: node scripts/release.mjs --prepare >> "$GITHUB_OUTPUT"
+      - name: Commit and tag release
+        if: steps.release-plan.outputs.release == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.release-plan.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release-plan.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(release): $RELEASE_VERSION [skip ci]"
+          git tag -a "$RELEASE_TAG" -m "$RELEASE_TAG"
+          git push origin HEAD:main "$RELEASE_TAG"
+      - id: recovery
+        name: Detect an interrupted release
+        if: steps.release-plan.outputs.release == 'false'
+        run: |
+          action_version="$(node -p "require('./package.json').version")"
+          release_tag="v$action_version"
+          if git tag --points-at HEAD --list "$release_tag" | grep -Fx "$release_tag" >/dev/null; then
+            echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create GitHub release
+        if: steps.release-plan.outputs.release == 'true' || steps.recovery.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release-plan.outputs.tag || steps.recovery.outputs.tag }}
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" --generate-notes --title "$RELEASE_TAG"
+      - name: Update major action tag
+        if: steps.release-plan.outputs.release == 'true' || steps.recovery.outputs.tag != ''
+        env:
+          RELEASE_TAG: ${{ steps.release-plan.outputs.tag || steps.recovery.outputs.tag }}
+        run: |
+          release_version="${RELEASE_TAG#v}"
+          major_tag="v${release_version%%.*}"
+          git tag -fa "$major_tag" "$RELEASE_TAG^{commit}" -m "$major_tag"
+          git push --force origin "refs/tags/$major_tag"
