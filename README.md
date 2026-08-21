@@ -124,6 +124,29 @@ The action bundle includes these exact updater releases:
 
 They are installed only while this action itself is developed and bundled into its committed `dist/index.js` file. Consuming workflows never install or contact npm for them. Updating an engine updater is therefore an action release change, rather than a consuming-project setting.
 
+## Inputs
+
+All inputs are optional. `version` takes precedence over `bump` when both are supplied.
+
+| Input | Default | Description |
+| --- | --- | --- |
+| `engine` | `auto` | Game engine to update: `auto`, `godot`, `unity`, or `unreal`. |
+| `working-directory` | `.` | Directory containing the game project. |
+| `project-path` | — | Settings-file path relative to `working-directory`; auto-detected when omitted. |
+| `version` | — | Exact version to write. |
+| `bump` | `patch` | Version component to increment: `major`, `minor`, `patch`, `quad` (Unity only), or `none`. |
+| `release-label` | — | SemVer prerelease label, such as `rc.1`. |
+| `build-label` | — | SemVer build label, such as `build.42`. |
+| `strip-leading-v` | `false` | Removes one leading `v` from `version`. |
+| `allow-non-semver` | `false` | Allows an exact non-SemVer `version` for Godot or Unreal. |
+| `dry-run` | `false` | Calculates the update without writing the settings file. |
+| `unreal-section` | `/Script/EngineSettings.GeneralProjectSettings` | Unreal INI section containing the version. |
+| `unreal-key` | `ProjectVersion` | Unreal INI key containing the version. |
+| `unity-version-properties` | `{"bundleVersion":"{major}.{minor}.{patch}"}` | JSON map of Unity PlayerSettings properties to version format strings. |
+| `unity-quad` | — | Optional non-negative fourth version component for Unity formats. |
+| `unity-treat-build-as-patch` | `true` | Couples Unity's numeric build and patch values. |
+| `unity-treat-revision-as-quad` | `true` | Couples Unity's numeric revision and quad values. |
+
 ## Outputs
 
 | Output | Description |
