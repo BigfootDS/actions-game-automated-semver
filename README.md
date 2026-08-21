@@ -41,6 +41,57 @@ Use an immutable action tag or commit SHA in production. The `v1` tag will be cr
 
 To commit the change, stage the resolved `project-path` for your chosen engine, then commit and push it using the credentials and release policy that suit your repository.
 
+## Automatic versioning from Conventional Commits
+
+For a hands-off Unity versioning workflow, use [`ietf-tools/semver-conventional-commits`](https://github.com/ietf-tools/semver-conventional-commits) to determine the bump since the latest release tag, then pass its `bump` output to this action. [`stefanzweifel/git-auto-commit-action`](https://github.com/stefanzweifel/git-auto-commit-action) can commit the updated settings file without a custom shell step.
+
+```yaml
+name: Update Unity project version
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - id: release-plan
+        uses: ietf-tools/semver-conventional-commits@v1.11.0
+        with:
+          token: ${{ github.token }}
+          branch: main
+          noNewCommitBehavior: current
+          noVersionBumpBehavior: current
+
+      - id: game-version
+        uses: BigfootDS/actions-game-automated-semver@v1
+        with:
+          engine: unity
+          bump: ${{ steps.release-plan.outputs.bump }}
+
+      - name: Commit Unity version update
+        if: ${{ steps.release-plan.outputs.bump != 'none' }}
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore: update game version"
+          file_pattern: ProjectSettings/ProjectSettings.asset
+```
+
+The planner's `bump` output is `major`, `minor`, `patch`, or `none`. Its default Conventional Commit mapping treats breaking changes as major releases, `feat` as minor releases, and common maintenance types as patch releases. Use the planner's inputs to adjust those mappings for your repository.
+
+Create an initial SemVer tag, such as `v0.0.0`, before enabling this workflow. The planner compares against the latest tag, so a subsequent release step must tag the version after a successful build to establish the next comparison point.
+
 ## Engines and project discovery
 
 `engine: auto` recursively searches up to five directories below `working-directory` for exactly one of these standard settings files:
