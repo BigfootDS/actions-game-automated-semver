@@ -164,6 +164,65 @@ For Unity, `unity-version-properties` is a JSON map of PlayerSettings properties
 
 `dry-run: true` calculates the result without modifying a project file. The Unity adapter performs its dry run in a temporary copy so it has the same change detection as a real write.
 
+## Migrating from UnityAutomatedSemver
+
+The previous Unity-only action used separate inputs for each PlayerSettings property. This action uses the shared engine input model and one JSON map for Unity version properties.
+
+| UnityAutomatedSemver | This action |
+| --- | --- |
+| `updateMode` | `bump`; use `none` instead of `no-bump`. |
+| `projectSettingsPath` | `engine: unity` with `project-path`. |
+| `releaseLabel` / `buildLabel` | `release-label` / `build-label`. |
+| `bundleVersion` and per-platform format inputs | `unity-version-properties` JSON map. |
+| `useBundleVersionForAll` | Assign the same format to each relevant property in `unity-version-properties`. |
+| Component override inputs | Supply the exact `version`, plus `unity-quad` for a fourth component when needed. |
+| `semver-string` / `semver-full-data` outputs | `version` / `full-data` outputs. |
+| `backupAssetFile` | No direct replacement; use Git history or `dry-run: true` before changing the file. |
+
+### Pre-release or nightly Unity builds
+
+This is the equivalent of the old action's `no-bump`, release-label, build-label, and `bundleVersion` example:
+
+```yaml
+- id: game-version
+  uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: unity
+    bump: none
+    release-label: rc1
+    build-label: nightly
+    unity-version-properties: >-
+      {"bundleVersion":"{major}.{minor}.{patch}-{releaseLabel}+{buildLabel}"}
+```
+
+### Multi-platform Unity version strings
+
+Replace the old individual Unity format inputs with a single JSON map. Include only the PlayerSettings properties your project needs:
+
+```yaml
+- uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: unity
+    bump: patch
+    unity-version-properties: >-
+      {"bundleVersion":"{major}.{minor}.{patch}","switchDisplayVersion":"{major}.{minor}.{patch}","ps4MasterVersion":"{major}.{minor}","ps4AppVersion":"{major}.{minor}","metroPackageVersion":"{major}.{minor}.{patch}.{quad}","XboxOneVersion":"{major}.{minor}.{patch}.{quad}","psp2MasterVersion":"{major}.{minor}","psp2AppVersion":"{major}.{minor}"}
+```
+
+### Sparse checkout for large Unity projects
+
+Only `ProjectSettings/ProjectSettings.asset` is required to update a Unity version, so a sparse checkout remains a useful way to keep the workflow light:
+
+```yaml
+- uses: actions/checkout@v7
+  with:
+    sparse-checkout: ProjectSettings
+
+- uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: unity
+    project-path: ProjectSettings/ProjectSettings.asset
+```
+
 ## Bundled engine updaters
 
 The action bundle includes these exact updater releases:
