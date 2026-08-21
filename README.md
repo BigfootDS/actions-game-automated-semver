@@ -26,7 +26,7 @@ jobs:
   update-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - id: game-version
         uses: BigfootDS/actions-game-automated-semver@v1
