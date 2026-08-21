@@ -1,0 +1,29 @@
+{
+  "name": "@bigfootds/actions-game-automated-semver",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Configurable GitHub Action for updating game project versions through BigfootDS engine updater packages.",
+  "license": "MIT",
+  "scripts": {
+    "build:ts": "tsc --project tsconfig.json",
+    "build": "npm run build:ts && esbuild lib/index.js --bundle --platform=node --format=cjs --target=node24 --minify-whitespace --outfile=dist/index.js",
+    "test": "npm run build:ts && node --test test/*.test.js",
+    "check": "npm run build && git diff --exit-code -- dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BigfootDS/actions-game-automated-semver"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@actions/core": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
