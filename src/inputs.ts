@@ -25,8 +25,6 @@ export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv =
     ...optional("version", reader.getInput("version")),
     ...optional("releaseLabel", reader.getInput("release-label")),
     ...optional("buildLabel", reader.getInput("build-label")),
-    ...optional("enginePackage", reader.getInput("engine-package")),
-    ...optional("enginePackageVersion", reader.getInput("engine-package-version")),
     ...(unityQuad === undefined ? {} : { unityQuad }),
     dryRun: readBoolean(reader, "dry-run", false),
     allowNonSemver: readBoolean(reader, "allow-non-semver", false),

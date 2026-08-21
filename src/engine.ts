@@ -8,12 +8,6 @@ const defaults: Record<Engine, string> = {
   unreal: "Config/DefaultGame.ini",
 };
 
-const packageDefaults: Record<Engine, { name: string; version: string }> = {
-  godot: { name: "@bigfootds/godot-semver-updater", version: "0.0.2" },
-  unity: { name: "@bigfootds/unity-semver-updater", version: "0.0.7" },
-  unreal: { name: "@bigfootds/unreal-semver-updater", version: "0.0.1" },
-};
-
 export async function resolveProject(
   engine: RequestedEngine,
   workingDirectory: string,
@@ -37,17 +31,6 @@ export async function resolveProject(
     throw new Error(`Found multiple game project settings files: ${candidates.map((candidate) => candidate.projectPath).join(", ")}. Set engine and project-path explicitly.`);
   }
   return candidates[0] as ResolvedProject;
-}
-
-export function getPackageSpec(
-  engine: Engine,
-  packageName: string | undefined,
-  packageVersion: string | undefined,
-): { name: string; spec: string } {
-  const fallback = packageDefaults[engine];
-  const name = packageName ?? fallback.name;
-  const version = packageVersion ?? fallback.version;
-  return { name, spec: `${name}@${version}` };
 }
 
 function engineForPath(projectPath: string): Engine | undefined {

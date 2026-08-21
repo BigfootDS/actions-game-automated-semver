@@ -1,14 +1,13 @@
 # Game Automated SemVer
 
-Configurable GitHub Action for updating Godot, Unity, and Unreal project versions. It calculates the next version, then installs the matching BigfootDS engine updater in an isolated temporary directory to make the engine-specific file change.
+Configurable GitHub Action for updating Godot, Unity, and Unreal project versions. It calculates the next version, then uses the matching BigfootDS engine updater bundled into the action to make the engine-specific file change.
 
 The action never creates commits, tags, or releases in the consuming repository. This keeps it composable: decide your release policy in the workflow, then commit the changed project setting only when you intend to.
 
 ## Requirements
 
 - A checked-out game project.
-- An npm-capable runner with registry access. GitHub-hosted runners meet this requirement.
-- The selected engine updater package must be available on npm. Default adapters are pinned to known package versions and can be overridden.
+- A runner supported by GitHub Actions. No npm command, registry access, or dependency installation occurs while the action runs.
 
 ## Basic usage
 
@@ -115,25 +114,15 @@ For Unity, `unity-version-properties` is a JSON map of PlayerSettings properties
 
 `dry-run: true` calculates the result without modifying a project file. The Unity adapter performs its dry run in a temporary copy so it has the same change detection as a real write.
 
-## Adapter overrides
+## Bundled engine updaters
 
-The default pinned adapters are:
+The action bundle includes these exact updater releases:
 
 - `@bigfootds/godot-semver-updater@0.0.2`
 - `@bigfootds/unity-semver-updater@0.0.7`
-- `@bigfootds/unreal-semver-updater@0.0.1`
+- `@bigfootds/unreal-semver-updater@0.0.2`
 
-Override either part when testing a newer updater or using a compatible private fork:
-
-```yaml
-- uses: BigfootDS/actions-game-automated-semver@v1
-  with:
-    engine: godot
-    engine-package: @acme/godot-version-adapter
-    engine-package-version: 2.1.0
-```
-
-Custom adapters must export the same engine-specific API as the corresponding BigfootDS updater.
+They are installed only while this action itself is developed and bundled into its committed `dist/index.js` file. Consuming workflows never install or contact npm for them. Updating an engine updater is therefore an action release change, rather than a consuming-project setting.
 
 ## Outputs
 

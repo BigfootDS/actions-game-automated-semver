@@ -1,63 +1,13 @@
 import { basename, join } from "node:path";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { getPackageSpec, resolveProject } from "./engine.js";
-import { withEnginePackage } from "./packages.js";
+import { updateGodotProjectVersion } from "@bigfootds/godot-semver-updater";
+import { ProjectSettingsHelpers, UnityProjectVersion } from "@bigfootds/unity-semver-updater";
+import { updateUnrealProjectVersion } from "@bigfootds/unreal-semver-updater";
+import type { PlayerSettingsVersionStrings } from "@bigfootds/unity-semver-updater";
+import { resolveProject } from "./engine.js";
 import { applyLabels, bumpSemanticVersion, formatSemanticVersion, parseSemanticVersion } from "./semver.js";
-import type { ActionOptions, Engine, ResolvedProject, UpdateResult } from "./types.js";
-
-type UpdateGodot = (options: {
-  projectPath: string;
-  version: string;
-  validateSemver: boolean;
-  dryRun: boolean;
-}) => Promise<{ previousVersion?: string; changed: boolean }>;
-
-type UpdateUnreal = (options: {
-  projectPath: string;
-  version: string;
-  section: string;
-  key: string;
-  validateSemver: boolean;
-  dryRun: boolean;
-}) => Promise<{ previousVersion?: string; changed: boolean }>;
-
-interface UnityVersion {
-  major: number;
-  minor: number;
-  patch: number;
-  quad: number;
-  build: number;
-  revision: number;
-  releaseLabel: string;
-  buildLabel: string;
-  treatBuildAsPatch: boolean;
-  treatRevisionAsQuad: boolean;
-  bumpMajor(): void;
-  bumpMinor(): void;
-  bumpPatch(): void;
-  bumpQuad(): void;
-  toString(): string;
-  toFormattedOutput(format: string): string;
-}
-
-interface UnityPackage {
-  ProjectSettingsHelpers: {
-    getExistingBundleVersion(path: string): Promise<UnityVersion | null>;
-    writeToProjectSettings(path: string, properties: Record<string, unknown>): Promise<boolean>;
-  };
-  UnityProjectVersion: new (
-    major: number,
-    minor: number,
-    patch: number,
-    quad: number,
-    releaseLabel: string,
-    buildLabel: string,
-    rawString: string,
-    treatBuildAsPatch: boolean,
-    treatRevisionAsQuad: boolean,
-  ) => UnityVersion;
-}
+import type { ActionOptions, ResolvedProject, UpdateResult } from "./types.js";
 
 const unityStringProperties = new Set([
   "bundleVersion",
@@ -73,26 +23,21 @@ const unityStringProperties = new Set([
 
 export async function updateProject(options: ActionOptions): Promise<UpdateResult> {
   const project = await resolveProject(options.engine, options.workingDirectory, options.projectPath);
-  const packageSpec = getPackageSpec(project.engine, options.enginePackage, options.enginePackageVersion);
-  return withEnginePackage(packageSpec.name, packageSpec.spec, async (enginePackage) => {
-    switch (project.engine) {
-      case "godot": return updateGodot(project, options, enginePackage);
-      case "unity": return updateUnity(project, options, enginePackage as unknown as UnityPackage);
-      case "unreal": return updateUnreal(project, options, enginePackage);
-    }
-  });
+  switch (project.engine) {
+    case "godot": return updateGodot(project, options);
+    case "unity": return updateUnity(project, options);
+    case "unreal": return updateUnreal(project, options);
+  }
 }
 
 async function updateGodot(
   project: ResolvedProject,
   options: ActionOptions,
-  enginePackage: Record<string, unknown>,
 ): Promise<UpdateResult> {
   const original = await readFile(project.projectPath, "utf8");
   const previousVersion = readGodotVersion(original);
   const version = deriveSemanticVersion(previousVersion, options);
-  const update = requireFunction<UpdateGodot>(enginePackage, "updateGodotProjectVersion");
-  const result = await update({
+  const result = await updateGodotProjectVersion({
     projectPath: project.projectPath,
     version,
     validateSemver: !options.allowNonSemver,
@@ -111,13 +56,11 @@ async function updateGodot(
 async function updateUnreal(
   project: ResolvedProject,
   options: ActionOptions,
-  enginePackage: Record<string, unknown>,
 ): Promise<UpdateResult> {
   const original = await readFile(project.projectPath, "utf8");
   const previousVersion = readIniValue(original, options.unrealSection, options.unrealKey);
   const version = deriveSemanticVersion(previousVersion, options);
-  const update = requireFunction<UpdateUnreal>(enginePackage, "updateUnrealProjectVersion");
-  const result = await update({
+  const result = await updateUnrealProjectVersion({
     projectPath: project.projectPath,
     version,
     section: options.unrealSection,
@@ -138,14 +81,13 @@ async function updateUnreal(
 async function updateUnity(
   project: ResolvedProject,
   options: ActionOptions,
-  unityPackage: UnityPackage,
 ): Promise<UpdateResult> {
   const original = await readFile(project.projectPath, "utf8");
-  const existing = await unityPackage.ProjectSettingsHelpers.getExistingBundleVersion(project.projectPath);
+  const existing = await ProjectSettingsHelpers.getExistingBundleVersion(project.projectPath);
   const previousVersion = existing?.toString();
-  const version = deriveUnityVersion(existing, options, unityPackage);
+  const version = deriveUnityVersion(existing, options);
   const properties = createUnityProperties(options, version);
-  const changed = await writeUnityVersion(project.projectPath, original, properties, options.dryRun, unityPackage);
+  const changed = await writeUnityVersion(project.projectPath, original, properties, options.dryRun);
 
   return {
     engine: project.engine,
@@ -180,18 +122,17 @@ function deriveSemanticVersion(previousVersion: string | undefined, options: Act
 }
 
 function deriveUnityVersion(
-  existing: UnityVersion | null,
+  existing: UnityProjectVersion | null,
   options: ActionOptions,
-  unityPackage: UnityPackage,
-): UnityVersion {
+): UnityProjectVersion {
   const requested = normalizeRequestedVersion(options);
-  let version: UnityVersion;
+  let version: UnityProjectVersion;
   if (requested !== undefined) {
     if (options.allowNonSemver) {
       throw new Error("allow-non-semver is not supported for Unity because Unity version fields require a semantic version.");
     }
     const parsed = parseSemanticVersion(requested);
-    version = new unityPackage.UnityProjectVersion(
+    version = new UnityProjectVersion(
       parsed.major,
       parsed.minor,
       parsed.patch,
@@ -226,7 +167,7 @@ function deriveUnityVersion(
   return version;
 }
 
-function createUnityProperties(options: ActionOptions, version: UnityVersion): Record<string, unknown> {
+function createUnityProperties(options: ActionOptions, version: UnityProjectVersion): Record<string, unknown> {
   const properties: Record<string, unknown> = {
     bundleVersion: null,
     buildNumber: null,
@@ -253,17 +194,16 @@ async function writeUnityVersion(
   original: string,
   properties: Record<string, unknown>,
   dryRun: boolean,
-  unityPackage: UnityPackage,
 ): Promise<boolean> {
   if (!dryRun) {
-    await unityPackage.ProjectSettingsHelpers.writeToProjectSettings(projectPath, properties);
+    await ProjectSettingsHelpers.writeToProjectSettings(projectPath, properties as PlayerSettingsVersionStrings);
     return (await readFile(projectPath, "utf8")) !== original;
   }
   const directory = await mkdtemp(join(tmpdir(), "game-semver-unity-dry-run-"));
   const temporaryPath = join(directory, basename(projectPath));
   try {
     await writeFile(temporaryPath, original, "utf8");
-    await unityPackage.ProjectSettingsHelpers.writeToProjectSettings(temporaryPath, properties);
+    await ProjectSettingsHelpers.writeToProjectSettings(temporaryPath, properties as PlayerSettingsVersionStrings);
     return (await readFile(temporaryPath, "utf8")) !== original;
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -320,10 +260,4 @@ function findSection(content: string, name: string): string | undefined {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function requireFunction<T>(source: Record<string, unknown>, name: string): T {
-  const value = source[name];
-  if (typeof value !== "function") throw new Error(`The selected engine package does not export ${name}.`);
-  return value as T;
 }

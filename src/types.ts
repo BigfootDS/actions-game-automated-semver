@@ -13,8 +13,6 @@ export interface ActionOptions {
   dryRun: boolean;
   allowNonSemver: boolean;
   stripLeadingV: boolean;
-  enginePackage?: string;
-  enginePackageVersion?: string;
   unrealSection: string;
   unrealKey: string;
   unityVersionProperties: Record<string, string>;

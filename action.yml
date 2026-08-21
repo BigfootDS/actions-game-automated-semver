@@ -41,12 +41,6 @@ inputs:
     description: Calculate the update without writing the project file.
     required: false
     default: "false"
-  engine-package:
-    description: Override the npm package name used for the selected engine adapter.
-    required: false
-  engine-package-version:
-    description: Override the npm package version used for the selected engine adapter.
-    required: false
   unreal-section:
     description: Unreal INI section containing the version.
     required: false
