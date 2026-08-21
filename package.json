@@ -1,6 +1,6 @@
 {
   "name": "@bigfootds/actions-game-automated-semver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Configurable GitHub Action for updating game project versions through BigfootDS engine updater packages.",
   "license": "MIT",
