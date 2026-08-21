@@ -135,6 +135,37 @@ They are installed only while this action itself is developed and bundled into i
 | `project-path` | Resolved settings-file path. |
 | `full-data` | JSON containing engine-specific version data and rendered Unity properties. |
 
+## Action compatibility
+
+### GameCI Unity Builder
+
+GameCI's `Semantic` versioning strategy independently calculates a build version from Git history. When this action manages a Unity project's `ProjectSettings.asset`, use one system as the owner of the effective build version rather than enabling both strategies.
+
+To use the version stored by this action, run GameCI after the version-update step and disable GameCI versioning:
+
+```yaml
+- uses: game-ci/unity-builder@v4
+  with:
+    versioning: None
+```
+
+Alternatively, give GameCI the same version explicitly. This is useful when you want the version written to `ProjectSettings.asset` and the version applied during the build to be visibly coupled:
+
+```yaml
+- id: game-version
+  uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: unity
+    bump: patch
+
+- uses: game-ci/unity-builder@v4
+  with:
+    versioning: Custom
+    version: ${{ steps.game-version.outputs.version }}
+```
+
+Do not use GameCI's `Semantic` strategy alongside this action when you expect the project-file version and effective build version to match. See the [GameCI Builder versioning documentation](https://game.ci/docs/github/builder/) for its available strategies.
+
 ## Development
 
 ```sh
