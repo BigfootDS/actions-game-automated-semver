@@ -1,83 +1,83 @@
 name: Game Automated SemVer
-description: Bump or set a Godot, Unity, or Unreal project version through the corresponding BigfootDS updater package.
+description: "Bump or set a Godot, Unity, or Unreal project version through the corresponding BigfootDS updater package."
 branding:
   icon: git-commit
   color: purple
 
 inputs:
   engine:
-    description: Game engine to update: auto, godot, unity, or unreal.
+    description: "Game engine to update: auto, godot, unity, or unreal."
     required: false
     default: auto
   working-directory:
-    description: Directory containing the game project.
+    description: "Directory containing the game project."
     required: false
     default: .
   project-path:
-    description: Path to the engine settings file, relative to working-directory. Auto-detected when omitted.
+    description: "Path to the engine settings file, relative to working-directory. Auto-detected when omitted."
     required: false
   version:
-    description: Exact version to write. Takes precedence over bump.
+    description: "Exact version to write. Takes precedence over bump."
     required: false
   bump:
-    description: Version component to increment: major, minor, patch, quad (Unity only), or none.
+    description: "Version component to increment: major, minor, patch, quad (Unity only), or none."
     required: false
     default: patch
   release-label:
-    description: Semantic-version prerelease label to apply, such as rc.1.
+    description: "Semantic-version prerelease label to apply, such as rc.1."
     required: false
   build-label:
-    description: Semantic-version build label to apply, such as build.42.
+    description: "Semantic-version build label to apply, such as build.42."
     required: false
   strip-leading-v:
-    description: Remove one leading v from the version input.
+    description: "Remove one leading v from the version input."
     required: false
     default: "false"
   allow-non-semver:
-    description: Allow an exact Godot or Unreal version input that is not strict SemVer.
+    description: "Allow an exact Godot or Unreal version input that is not strict SemVer."
     required: false
     default: "false"
   dry-run:
-    description: Calculate the update without writing the project file.
+    description: "Calculate the update without writing the project file."
     required: false
     default: "false"
   unreal-section:
-    description: Unreal INI section containing the version.
+    description: "Unreal INI section containing the version."
     required: false
     default: /Script/EngineSettings.GeneralProjectSettings
   unreal-key:
-    description: Unreal INI key containing the version.
+    description: "Unreal INI key containing the version."
     required: false
     default: ProjectVersion
   unity-version-properties:
-    description: JSON object mapping supported Unity PlayerSettings properties to version format strings.
+    description: "JSON object mapping supported Unity PlayerSettings properties to version format strings."
     required: false
     default: '{"bundleVersion":"{major}.{minor}.{patch}"}'
   unity-quad:
-    description: Optional non-negative fourth version component for Unity output formats.
+    description: "Optional non-negative fourth version component for Unity output formats."
     required: false
   unity-treat-build-as-patch:
-    description: Keep Unity build and patch numeric values coupled.
+    description: "Keep Unity build and patch numeric values coupled."
     required: false
     default: "true"
   unity-treat-revision-as-quad:
-    description: Keep Unity revision and quad numeric values coupled.
+    description: "Keep Unity revision and quad numeric values coupled."
     required: false
     default: "true"
 
 outputs:
   version:
-    description: Version written or calculated by the action.
+    description: "Version written or calculated by the action."
   previous-version:
-    description: Version found before the action ran, if any.
+    description: "Version found before the action ran, if any."
   changed:
-    description: Whether the action changed (or would change) the project file.
+    description: "Whether the action changed (or would change) the project file."
   engine:
-    description: Resolved game engine.
+    description: "Resolved game engine."
   project-path:
-    description: Resolved path to the updated settings file.
+    description: "Resolved path to the updated settings file."
   full-data:
-    description: JSON describing the resolved version and engine-specific output data.
+    description: "JSON describing the resolved version and engine-specific output data."
 
 runs:
   using: node24
