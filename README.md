@@ -2,12 +2,11 @@
 
 Configurable GitHub Action for updating Godot, Unity, and Unreal project versions. It calculates the next version, then uses the matching BigfootDS engine updater bundled into the action to make the engine-specific file change.
 
-The action never creates commits, tags, or releases in the consuming repository. This keeps it composable: decide your release policy in the workflow, then commit the changed project setting only when you intend to.
+The action never creates commits, tags, or releases in the consuming repository. How you preserve and use the semver version string made by this action is up to you. 
 
 ## Requirements
 
-- A checked-out game project.
-- A runner supported by GitHub Actions. No npm command, registry access, or dependency installation occurs while the action runs.
+Make sure you check out your game repo before using this action!
 
 ## Basic usage
 
@@ -122,7 +121,7 @@ The action bundle includes these exact updater releases:
 - `@bigfootds/unity-semver-updater@0.0.7`
 - `@bigfootds/unreal-semver-updater@0.0.2`
 
-They are installed only while this action itself is developed and bundled into its committed `dist/index.js` file. Consuming workflows never install or contact npm for them. Updating an engine updater is therefore an action release change, rather than a consuming-project setting.
+They are installed only while this action itself is developed and bundled into its committed `dist/index.js` file. So, while this action calls on those three NPM packages, it does not reach out to NPM or do any downloads or installs. The packages are bundled into this action by the time you use this action!
 
 ## Inputs
 
