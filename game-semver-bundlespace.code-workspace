@@ -4,6 +4,9 @@
 			"path": "../pkg-godot-semver-updater"
 		},
 		{
+			"path": "../pkg-nodejs-semver-updater"
+		},
+		{
 			"path": "../pkg-unity-semver-updater"
 		},
 		{
