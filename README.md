@@ -49,6 +49,8 @@ The engine-specific recipe pages contain copy-and-paste workflows for the common
 - [Unity recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Unity.md)
 - [Unreal recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Unreal.md)
 
+You can read on for common usages below, too.
+
 ## Automatic versioning from Conventional Commits
 
 For a hands-off Unity versioning workflow, use [`ietf-tools/semver-conventional-commits`](https://github.com/ietf-tools/semver-conventional-commits) to determine the bump since the latest release tag, then pass its `bump` output to this action. [`stefanzweifel/git-auto-commit-action`](https://github.com/stefanzweifel/git-auto-commit-action) can commit the updated settings file without a custom shell step.

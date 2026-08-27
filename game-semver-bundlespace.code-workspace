@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../pkg-godot-semver-updater"
+		},
+		{
+			"path": "../pkg-unity-semver-updater"
+		},
+		{
+			"path": "../pkg-unreal-semver-updater"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}
