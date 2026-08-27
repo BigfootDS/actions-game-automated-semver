@@ -45,9 +45,9 @@ To commit the change, stage the resolved `project-path` for your chosen engine, 
 
 The engine-specific recipe pages contain copy-and-paste workflows for the common project layouts and release flows:
 
-- [Godot recipes](docs/examples/Godot.md)
-- [Unity recipes](docs/examples/Unity.md)
-- [Unreal recipes](docs/examples/Unreal.md)
+- [Godot recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Godot.md)
+- [Unity recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Unity.md)
+- [Unreal recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Unreal.md)
 
 ## Automatic versioning from Conventional Commits
 
