@@ -122,13 +122,36 @@ Capacitor projects are Node.js projects, so this action can update the web app's
 - run: npx cap sync
 ```
 
-The native Android and iOS marketing/build versions are Gradle and Xcode settings, not JSON configuration that this action rewrites. Use the action's `version` output as the input to your project’s native versioning step if those values must match:
+The native Android and iOS marketing/build versions are Gradle and Xcode settings, not JSON configuration that this action rewrites. `npx cap sync` copies web assets and synchronises native dependencies, but it does not set those release-version values. Use one of these explicit native-version steps after the Capacitor sync.
+
+### Option 1: `@capawesome/capver` (newer)
+
+[`@capawesome/capver`](https://www.npmjs.com/package/@capawesome/capver) synchronises the Node.js package version, Android version name/code and iOS version/build number. Pin it because it is a newer, pre-1.0 tool, then run its check command in the workflow so a changed project layout is caught early.
 
 ```yaml
-- run: npm run set-native-version -- "${{ steps.game-version.outputs.version }}"
+- name: Set Capacitor native versions with capver
+  run: npx --yes @capawesome/capver@0.1.5 set "${{ steps.game-version.outputs.version }}"
+
+- name: Verify Capacitor versions with capver
+  run: npx --yes @capawesome/capver@0.1.5 get
 ```
 
-That script is intentionally project-owned because Android and iOS version rules, build-number policies and signing processes vary between projects.
+`capver set` accepts a plain `major.minor.patch` release version. Do not use this option for a SemVer pre-release or build label such as `1.2.3-rc.1`.
+
+### Option 2: `capacitor-set-version` (older)
+
+[`capacitor-set-version`](https://www.npmjs.com/package/capacitor-set-version) is an older alternative that writes the native version and an explicit integer build number. GitHub’s run number gives each workflow run a monotonically increasing build number, which is useful for Android store uploads.
+
+```yaml
+- name: Set Capacitor native versions with capacitor-set-version
+  run: >-
+    npm exec --yes --package=capacitor-set-version@2.2.0 --
+    capacitor-set-version .
+    -v "${{ steps.game-version.outputs.version }}"
+    -b "${{ github.run_number }}"
+```
+
+This package is less current than `capver`, so treat it as a compatibility option for an existing project rather than the default for a new one. Both commands modify native files, so include their changed Android and iOS files in any commit step that writes versions back to Git.
 
 ## A Node.js game in a monorepo
 
