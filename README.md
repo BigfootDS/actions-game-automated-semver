@@ -41,6 +41,14 @@ Use an immutable action tag or commit SHA in production. The `v1` tag tracks the
 
 To commit the change, stage the resolved `project-path` for your chosen engine, then commit and push it using the credentials and release policy that suit your repository.
 
+## Engine recipes
+
+The engine-specific recipe pages contain copy-and-paste workflows for the common project layouts and release flows:
+
+- [Godot recipes](docs/examples/Godot.md)
+- [Unity recipes](docs/examples/Unity.md)
+- [Unreal recipes](docs/examples/Unreal.md)
+
 ## Automatic versioning from Conventional Commits
 
 For a hands-off Unity versioning workflow, use [`ietf-tools/semver-conventional-commits`](https://github.com/ietf-tools/semver-conventional-commits) to determine the bump since the latest release tag, then pass its `bump` output to this action. [`stefanzweifel/git-auto-commit-action`](https://github.com/stefanzweifel/git-auto-commit-action) can commit the updated settings file without a custom shell step.
