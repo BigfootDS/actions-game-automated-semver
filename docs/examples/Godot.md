@@ -128,6 +128,20 @@ Use `bump: none` when the numeric version is already correct and you only need S
 
 For example, a project at `1.4.0` becomes `1.4.0-rc.1+nightly.42`. The `version` output contains the complete value.
 
+## Literal display versions
+
+Godot accepts any string in `config/version`, while the action still needs a strict SemVer value to calculate bumps. `version-format` keeps those jobs separate. All text outside placeholders is literal, so this format is deliberately written with a space and a hyphen:
+
+```yaml
+- uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: godot
+    bump: patch
+    version-format: "Release {major}.{minor}.{patch} - beta"
+```
+
+`Release 1.0.0 - beta` becomes `Release 1.0.1 - beta`. The action output remains `1.0.1`, which is the value to use for a Git tag or release.
+
 ## Preview a change without writing a file
 
 Set `dry-run` when you want to print the version and resolved project path without modifying `project.godot`.

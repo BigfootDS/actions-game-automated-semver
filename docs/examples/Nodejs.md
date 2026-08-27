@@ -153,6 +153,25 @@ The native Android and iOS marketing/build versions are Gradle and Xcode setting
 
 This package is less current than `capver`, so treat it as a compatibility option for an existing project rather than the default for a new one. Both commands modify native files, so include their changed Android and iOS files in any commit step that writes versions back to Git.
 
+## Literal game display version, strict package version
+
+NPM expects `package.json.version` to remain SemVer. For an Electron or Capacitor game's player-facing version, keep that package field strict and store the formatted string in your own JSON property. `nodejs-version-source` tells the action which display value to parse on the next run.
+
+```yaml
+- id: game-version
+  uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: nodejs
+    bump: patch
+    version-format: "Game v{major}.{minor}.{patch}-beta"
+    nodejs-version-source: >-
+      {"filePath":"package.json","jsonPointer":"/gameVersion"}
+    nodejs-version-properties: >-
+      [{"filePath":"package.json","jsonPointer":"/desktopVersion","format":"v{major}.{minor}.{patch}"}]
+```
+
+With `"version": "1.0.0"` and `"gameVersion": "Game v1.0.0-beta"`, this writes `"version": "1.0.1"`, updates `gameVersion` to `Game v1.0.1-beta`, and writes `desktopVersion` as `v1.0.1`. The action's `version` output remains `1.0.1`.
+
 ## A Node.js game in a monorepo
 
 Set `working-directory` to the game package directory. The default Node.js version file remains `package.json` relative to that directory.

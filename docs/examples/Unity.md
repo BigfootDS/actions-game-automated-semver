@@ -129,6 +129,22 @@ This replaces a normal three-part `bundleVersion` with a SemVer pre-release and 
       {"bundleVersion":"{major}.{minor}.{patch}","metroPackageVersion":"{major}.{minor}.{patch}.{quad}","XboxOneVersion":"{major}.{minor}.{patch}.{quad}"}
 ```
 
+## Literal bundle versions
+
+For a player-facing `bundleVersion`, use `version-format`. It reads and writes `bundleVersion`, and takes priority over the `bundleVersion` entry in `unity-version-properties`. Other PlayerSettings properties can still use their own templates.
+
+```yaml
+- uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: unity
+    bump: patch
+    version-format: "Version {major}.{minor}.{patch} beta"
+    unity-version-properties: >-
+      {"switchDisplayVersion":"v{major}.{minor}.{patch}-demo"}
+```
+
+After a bump, `Version 1.0.0 beta` becomes `Version 1.0.1 beta`, while `switchDisplayVersion` becomes `v1.0.1-demo`. The action output stays strict SemVer: `1.0.1`.
+
 ## Sparse checkout for a large repository
 
 Only `ProjectSettings/ProjectSettings.asset` is needed for a version update. This is useful when a Unity repository is large and the workflow does not need `Assets/` or package content.

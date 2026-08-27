@@ -1,5 +1,11 @@
 import { resolve } from "node:path";
-import type { ActionOptions, Bump, NodejsVersionProperty, RequestedEngine } from "./types.js";
+import type {
+  ActionOptions,
+  Bump,
+  NodejsVersionProperty,
+  NodejsVersionSource,
+  RequestedEngine,
+} from "./types.js";
 
 export interface InputReader {
   getInput(name: string): string;
@@ -17,6 +23,7 @@ export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv =
   const unityVersionProperties = parseProperties(reader.getInput("unity-version-properties"));
   const unityQuad = parseOptionalNumber(reader.getInput("unity-quad"), "unity-quad");
   const nodejsVersionProperties = parseNodejsVersionProperties(reader.getInput("nodejs-version-properties"));
+  const nodejsVersionSource = parseNodejsVersionSource(reader.getInput("nodejs-version-source"));
 
   return {
     engine,
@@ -24,6 +31,7 @@ export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv =
     workingDirectory,
     ...optional("projectPath", reader.getInput("project-path")),
     ...optional("version", reader.getInput("version")),
+    ...optional("versionFormat", reader.getInput("version-format")),
     ...optional("releaseLabel", reader.getInput("release-label")),
     ...optional("buildLabel", reader.getInput("build-label")),
     ...(unityQuad === undefined ? {} : { unityQuad }),
@@ -36,6 +44,7 @@ export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv =
     unityTreatBuildAsPatch: readBoolean(reader, "unity-treat-build-as-patch", true),
     unityTreatRevisionAsQuad: readBoolean(reader, "unity-treat-revision-as-quad", true),
     nodejsVersionProperties,
+    ...(nodejsVersionSource === undefined ? {} : { nodejsVersionSource }),
   };
 }
 
@@ -111,11 +120,47 @@ function parseNodejsVersionProperty(value: unknown, index: number): NodejsVersio
   if (property.create !== undefined && typeof property.create !== "boolean") {
     throw new Error(`nodejs-version-properties[${index}].create must be a boolean when supplied.`);
   }
+  if (property.format !== undefined && typeof property.format !== "string") {
+    throw new Error(`nodejs-version-properties[${index}].format must be a string when supplied.`);
+  }
 
   return {
     filePath: property.filePath,
     jsonPointer: property.jsonPointer,
+    ...(typeof property.format === "string" ? { format: property.format } : {}),
     ...(property.create === true ? { create: true } : {}),
+  };
+}
+
+/** Parses the optional custom Node.js source before paths are resolved. */
+function parseNodejsVersionSource(value: string): NodejsVersionSource | undefined {
+  if (value.trim().length === 0) return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    throw new Error("nodejs-version-source must be a JSON object with filePath and jsonPointer fields.");
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("nodejs-version-source must be a JSON object with filePath and jsonPointer fields.");
+  }
+
+  const source = parsed as Record<string, unknown>;
+  if (typeof source.filePath !== "string" || source.filePath.trim().length === 0) {
+    throw new Error("nodejs-version-source.filePath must be a non-empty string.");
+  }
+  if (typeof source.jsonPointer !== "string" || !source.jsonPointer.startsWith("/")) {
+    throw new Error("nodejs-version-source.jsonPointer must be an RFC 6901 pointer starting with /.");
+  }
+  if (source.create !== undefined && typeof source.create !== "boolean") {
+    throw new Error("nodejs-version-source.create must be a boolean when supplied.");
+  }
+
+  return {
+    filePath: source.filePath,
+    jsonPointer: source.jsonPointer,
+    ...(source.create === true ? { create: true } : {}),
   };
 }
 

@@ -19,6 +19,9 @@ inputs:
   version:
     description: "Exact version to write. Takes precedence over bump."
     required: false
+  version-format:
+    description: "Literal template for a primary display version, such as v{major}.{minor}.{patch}-demo."
+    required: false
   bump:
     description: "Version component to increment: major, minor, patch, quad (Unity only), or none."
     required: false
@@ -65,9 +68,12 @@ inputs:
     required: false
     default: "true"
   nodejs-version-properties:
-    description: "JSON array of additional Node.js JSON version properties with filePath, jsonPointer, and optional create fields."
+    description: "JSON array of Node.js JSON version properties with filePath, jsonPointer, optional format, and optional create fields."
     required: false
     default: "[]"
+  nodejs-version-source:
+    description: "Optional JSON object identifying the formatted Node.js display version used as the bump source."
+    required: false
 
 outputs:
   version:

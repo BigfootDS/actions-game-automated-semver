@@ -118,6 +118,20 @@ If an external platform requires a non-SemVer value, such as a four-part numeric
     allow-non-semver: true
 ```
 
+## Literal display versions
+
+Use `version-format` when `ProjectVersion` is a player-facing string rather than plain SemVer. Literal prefixes and suffixes are not special syntax:
+
+```yaml
+- uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: unreal
+    bump: patch
+    version-format: "v{major}.{minor}.{patch}-demo"
+```
+
+The action reads `v1.0.0-demo`, writes `v1.0.1-demo`, and reports the canonical output version as `1.0.1`.
+
 ## Preview the next version
 
 `dry-run: true` performs the same parsing and calculates the same outputs without modifying `DefaultGame.ini`. This is useful for a pull request check or a build that only needs a version string.

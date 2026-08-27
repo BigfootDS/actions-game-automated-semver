@@ -127,7 +127,7 @@ Set both `engine` and `project-path` for monorepos, non-standard layouts, or whe
 
 ## Version control
 
-`version` takes precedence over `bump`, so it is useful when a release pipeline has already calculated the version:
+`version` takes precedence over `bump`, so it is useful when a release pipeline has already calculated the canonical SemVer value:
 
 ```yaml
 - uses: BigfootDS/actions-game-automated-semver@v1
@@ -150,9 +150,26 @@ Supported `bump` values are `major`, `minor`, `patch`, and `none`; `quad` is als
 
 Versions are strict SemVer by default. Use `allow-non-semver: true` only with an exact `version` input for Godot, Node.js, or Unreal; numeric bumps and labels require SemVer. Unity's updater needs a parseable semantic version to render its PlayerSettings fields.
 
+## Literal project version formats
+
+`version-format` separates the SemVer value used for bumps, tags, and the `version` output from the string stored in a game project. It is a literal template, not a regular expression: every character outside a placeholder is written exactly as supplied. This means a prefix, a space, a hyphen, or any other separator is simply part of your format.
+
+```yaml
+- id: game-version
+  uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: godot
+    bump: patch
+    version-format: "Release {major}.{minor}.{patch} - beta"
+```
+
+Given `Release 1.0.0 - beta`, this writes `Release 1.0.1 - beta` while `steps.game-version.outputs.version` is `1.0.1`. The format must contain `{major}`, `{minor}`, and `{patch}` exactly once. It can also use `{releaseLabel}` and `{buildLabel}`; Unity formats additionally support `{quad}`, `{build}`, and `{revision}`.
+
+`version-format` reads and writes Godot's `config/version`, Unreal's selected INI key, and Unity's `bundleVersion`. For Unity it overrides the `bundleVersion` entry in `unity-version-properties` when both are supplied. The engine recipe pages show each layout in context.
+
 ## Engine-specific options
 
-For Node.js, `nodejs-version-properties` is a JSON array of extra JSON version strings to keep aligned with `package.json`. Each item has a `filePath` relative to `working-directory`, an [RFC 6901 JSON Pointer](https://www.rfc-editor.org/rfc/rfc6901) in `jsonPointer`, and an optional `create: true` flag for a missing final property.
+For Node.js, `nodejs-version-properties` is a JSON array of extra JSON version strings to keep aligned with `package.json`. Each item has a `filePath` relative to `working-directory`, an [RFC 6901 JSON Pointer](https://www.rfc-editor.org/rfc/rfc6901) in `jsonPointer`, an optional literal `format`, and an optional `create: true` flag for a missing final property.
 
 ```yaml
 - uses: BigfootDS/actions-game-automated-semver@v1
@@ -160,10 +177,12 @@ For Node.js, `nodejs-version-properties` is a JSON array of extra JSON version s
     engine: nodejs
     bump: patch
     nodejs-version-properties: >-
-      [{"filePath":"game-version.json","jsonPointer":"/version"},{"filePath":"package.json","jsonPointer":"/build/buildVersion","create":true}]
+      [{"filePath":"game-version.json","jsonPointer":"/version"},{"filePath":"package.json","jsonPointer":"/build/buildVersion","format":"v{major}.{minor}.{patch}-demo","create":true}]
 ```
 
 This keeps the package version and project-owned JSON metadata together. The Node.js updater intentionally does not edit JavaScript, TypeScript, YAML, Gradle, plist, XML or Xcode project files. The [Node.js recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Nodejs.md) show Electron and Capacitor-friendly patterns.
+
+`package.json.version` always receives the canonical SemVer version. If a display string should be the source of future bumps, set `nodejs-version-source` to its file and pointer, then set `version-format`. The action updates that source after every bump as well as the strict package version.
 
 For Unreal, set a different INI destination when the version is not in the standard General Project Settings section:
 
@@ -270,6 +289,7 @@ All inputs are optional. `version` takes precedence over `bump` when both are su
 | `working-directory` | `.` | Directory containing the game or Node.js project. |
 | `project-path` | — | Version-file path relative to `working-directory`; auto-detected when omitted. |
 | `version` | — | Exact version to write. |
+| `version-format` | — | Literal format for Godot, Unreal, or Unity's primary stored value. Requires `{major}`, `{minor}`, and `{patch}` once each. |
 | `bump` | `patch` | Version component to increment: `major`, `minor`, `patch`, `quad` (Unity only), or `none`. |
 | `release-label` | — | SemVer prerelease label, such as `rc.1`. |
 | `build-label` | — | SemVer build label, such as `build.42`. |
@@ -282,7 +302,8 @@ All inputs are optional. `version` takes precedence over `bump` when both are su
 | `unity-quad` | — | Optional non-negative fourth version component for Unity formats. |
 | `unity-treat-build-as-patch` | `true` | Couples Unity's numeric build and patch values. |
 | `unity-treat-revision-as-quad` | `true` | Couples Unity's numeric revision and quad values. |
-| `nodejs-version-properties` | `[]` | JSON array of additional Node.js JSON version properties with `filePath`, `jsonPointer`, and optional `create`. |
+| `nodejs-version-properties` | `[]` | JSON array of additional Node.js properties with `filePath`, `jsonPointer`, optional `format`, and optional `create`. |
+| `nodejs-version-source` | — | Optional JSON object with `filePath`, `jsonPointer`, and optional `create` for a formatted Node.js bump source. |
 
 ## Outputs
 
@@ -293,7 +314,7 @@ All inputs are optional. `version` takes precedence over `bump` when both are su
 | `changed` | Whether the settings file changed or would change. |
 | `engine` | Resolved engine. |
 | `project-path` | Resolved settings-file path. |
-| `full-data` | JSON containing engine-specific version data and rendered Unity properties. |
+| `full-data` | JSON containing engine-specific canonical version data and rendered project values. |
 
 ## Action compatibility
 

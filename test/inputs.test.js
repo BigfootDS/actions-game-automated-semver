@@ -32,14 +32,18 @@ test("accepts configurable project and Unity settings", () => {
 test("accepts Node.js JSON version properties", () => {
   const options = readInputs(reader({
     engine: "nodejs",
-    "nodejs-version-properties": '[{"filePath":"package.json","jsonPointer":"/build/buildVersion"},{"filePath":"game-version.json","jsonPointer":"/version","create":true}]',
+    "version-format": "Release {major}.{minor}.{patch}-beta",
+    "nodejs-version-source": '{"filePath":"package.json","jsonPointer":"/gameVersion"}',
+    "nodejs-version-properties": '[{"filePath":"package.json","jsonPointer":"/build/buildVersion","format":"v{major}.{minor}.{patch}"},{"filePath":"game-version.json","jsonPointer":"/version","create":true}]',
   }), { GITHUB_WORKSPACE: "/workspace" });
 
   assert.equal(options.engine, "nodejs");
   assert.deepEqual(options.nodejsVersionProperties, [
-    { filePath: "package.json", jsonPointer: "/build/buildVersion" },
+    { filePath: "package.json", jsonPointer: "/build/buildVersion", format: "v{major}.{minor}.{patch}" },
     { filePath: "game-version.json", jsonPointer: "/version", create: true },
   ]);
+  assert.equal(options.versionFormat, "Release {major}.{minor}.{patch}-beta");
+  assert.deepEqual(options.nodejsVersionSource, { filePath: "package.json", jsonPointer: "/gameVersion" });
 });
 
 test("rejects malformed input", () => {
@@ -53,5 +57,9 @@ test("rejects malformed input", () => {
   assert.throws(
     () => readInputs(reader({ "nodejs-version-properties": '[{"filePath":"metadata.json","jsonPointer":"version"}]' })),
     /starting with/,
+  );
+  assert.throws(
+    () => readInputs(reader({ "nodejs-version-source": "[]" })),
+    /JSON object/,
   );
 });
