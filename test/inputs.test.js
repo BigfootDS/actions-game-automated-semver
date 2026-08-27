@@ -29,8 +29,29 @@ test("accepts configurable project and Unity settings", () => {
   assert.equal(options.unityVersionProperties.metroPackageVersion, "{major}.{minor}.{patch}.{quad}");
 });
 
+test("accepts Node.js JSON version properties", () => {
+  const options = readInputs(reader({
+    engine: "nodejs",
+    "nodejs-version-properties": '[{"filePath":"package.json","jsonPointer":"/build/buildVersion"},{"filePath":"game-version.json","jsonPointer":"/version","create":true}]',
+  }), { GITHUB_WORKSPACE: "/workspace" });
+
+  assert.equal(options.engine, "nodejs");
+  assert.deepEqual(options.nodejsVersionProperties, [
+    { filePath: "package.json", jsonPointer: "/build/buildVersion" },
+    { filePath: "game-version.json", jsonPointer: "/version", create: true },
+  ]);
+});
+
 test("rejects malformed input", () => {
   assert.throws(() => readInputs(reader({ bump: "banana" })), /bump must be one of/);
   assert.throws(() => readInputs(reader({ "dry-run": "maybe" })), /dry-run must be true or false/);
   assert.throws(() => readInputs(reader({ "unity-version-properties": "[]" })), /JSON object/);
+  assert.throws(
+    () => readInputs(reader({ "nodejs-version-properties": "{}" })),
+    /JSON array/,
+  );
+  assert.throws(
+    () => readInputs(reader({ "nodejs-version-properties": '[{"filePath":"metadata.json","jsonPointer":"version"}]' })),
+    /starting with/,
+  );
 });

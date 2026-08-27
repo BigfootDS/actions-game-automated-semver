@@ -1,11 +1,11 @@
 import { resolve } from "node:path";
-import type { ActionOptions, Bump, RequestedEngine } from "./types.js";
+import type { ActionOptions, Bump, NodejsVersionProperty, RequestedEngine } from "./types.js";
 
 export interface InputReader {
   getInput(name: string): string;
 }
 
-const engines = new Set<RequestedEngine>(["auto", "godot", "unity", "unreal"]);
+const engines = new Set<RequestedEngine>(["auto", "godot", "nodejs", "unity", "unreal"]);
 const bumps = new Set<Bump>(["major", "minor", "patch", "quad", "none"]);
 
 export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv = process.env): ActionOptions {
@@ -16,6 +16,7 @@ export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv =
   );
   const unityVersionProperties = parseProperties(reader.getInput("unity-version-properties"));
   const unityQuad = parseOptionalNumber(reader.getInput("unity-quad"), "unity-quad");
+  const nodejsVersionProperties = parseNodejsVersionProperties(reader.getInput("nodejs-version-properties"));
 
   return {
     engine,
@@ -34,6 +35,7 @@ export function readInputs(reader: InputReader, environment: NodeJS.ProcessEnv =
     unityVersionProperties,
     unityTreatBuildAsPatch: readBoolean(reader, "unity-treat-build-as-patch", true),
     unityTreatRevisionAsQuad: readBoolean(reader, "unity-treat-revision-as-quad", true),
+    nodejsVersionProperties,
   };
 }
 
@@ -73,6 +75,48 @@ function parseOptionalNumber(value: string, name: string): number | undefined {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error(`${name} must be a non-negative integer.`);
   return parsed;
+}
+
+/**
+ * Parses the JSON configuration passed through the action input before paths
+ * are resolved against the checked-out project directory.
+ */
+function parseNodejsVersionProperties(value: string): readonly NodejsVersionProperty[] {
+  if (value.trim().length === 0) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    throw new Error("nodejs-version-properties must be a JSON array of filePath and jsonPointer objects.");
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error("nodejs-version-properties must be a JSON array of filePath and jsonPointer objects.");
+  }
+
+  return parsed.map((property, index) => parseNodejsVersionProperty(property, index));
+}
+
+function parseNodejsVersionProperty(value: unknown, index: number): NodejsVersionProperty {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`nodejs-version-properties[${index}] must be an object.`);
+  }
+  const property = value as Record<string, unknown>;
+  if (typeof property.filePath !== "string" || property.filePath.trim().length === 0) {
+    throw new Error(`nodejs-version-properties[${index}].filePath must be a non-empty string.`);
+  }
+  if (typeof property.jsonPointer !== "string" || !property.jsonPointer.startsWith("/")) {
+    throw new Error(`nodejs-version-properties[${index}].jsonPointer must be an RFC 6901 pointer starting with /.`);
+  }
+  if (property.create !== undefined && typeof property.create !== "boolean") {
+    throw new Error(`nodejs-version-properties[${index}].create must be a boolean when supplied.`);
+  }
+
+  return {
+    filePath: property.filePath,
+    jsonPointer: property.jsonPointer,
+    ...(property.create === true ? { create: true } : {}),
+  };
 }
 
 function optional<T extends string>(name: T, value: string): Partial<Record<T, string>> {

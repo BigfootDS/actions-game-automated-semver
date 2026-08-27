@@ -21,6 +21,7 @@
   "dependencies": {
     "@actions/core": "^2.0.3",
     "@bigfootds/godot-semver-updater": "0.0.2",
+    "@bigfootds/nodejs-semver-updater": "0.0.1",
     "@bigfootds/unity-semver-updater": "0.0.7",
     "@bigfootds/unreal-semver-updater": "0.0.2"
   },

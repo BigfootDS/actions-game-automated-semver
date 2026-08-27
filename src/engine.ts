@@ -4,6 +4,7 @@ import type { Engine, RequestedEngine, ResolvedProject } from "./types.js";
 
 const defaults: Record<Engine, string> = {
   godot: "project.godot",
+  nodejs: "package.json",
   unity: "ProjectSettings/ProjectSettings.asset",
   unreal: "Config/DefaultGame.ini",
 };
@@ -15,7 +16,7 @@ export async function resolveProject(
 ): Promise<ResolvedProject> {
   if (requestedPath !== undefined) {
     const projectPath = resolve(workingDirectory, requestedPath);
-    const resolvedEngine = engine === "auto" ? engineForPath(projectPath) : engine;
+    const resolvedEngine = engine === "auto" ? engineForPath(projectPath, true) : engine;
     if (resolvedEngine === undefined) {
       throw new Error("Unable to infer the engine from project-path. Set the engine input explicitly.");
     }
@@ -33,9 +34,10 @@ export async function resolveProject(
   return candidates[0] as ResolvedProject;
 }
 
-function engineForPath(projectPath: string): Engine | undefined {
+function engineForPath(projectPath: string, includeNodejs: boolean): Engine | undefined {
   const fileName = basename(projectPath);
   if (fileName === "project.godot") return "godot";
+  if (includeNodejs && fileName === "package.json") return "nodejs";
   if (fileName === "ProjectSettings.asset") return "unity";
   if (fileName === "DefaultGame.ini") return "unreal";
   return undefined;
@@ -58,7 +60,7 @@ async function walk(directory: string, candidates: ResolvedProject[], depth: num
       continue;
     }
     if (!entry.isFile()) continue;
-    const engine = engineForPath(path);
+    const engine = engineForPath(path, false);
     if (engine !== undefined) candidates.push({ engine, projectPath: path });
   }
 }

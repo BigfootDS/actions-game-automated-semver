@@ -1,7 +1,8 @@
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { updateGodotProjectVersion } from "@bigfootds/godot-semver-updater";
+import { updateNodeProjectVersion } from "@bigfootds/nodejs-semver-updater";
 import { ProjectSettingsHelpers, UnityProjectVersion } from "@bigfootds/unity-semver-updater";
 import { updateUnrealProjectVersion } from "@bigfootds/unreal-semver-updater";
 import type { PlayerSettingsVersionStrings } from "@bigfootds/unity-semver-updater";
@@ -25,9 +26,40 @@ export async function updateProject(options: ActionOptions): Promise<UpdateResul
   const project = await resolveProject(options.engine, options.workingDirectory, options.projectPath);
   switch (project.engine) {
     case "godot": return updateGodot(project, options);
+    case "nodejs": return updateNodejs(project, options);
     case "unity": return updateUnity(project, options);
     case "unreal": return updateUnreal(project, options);
   }
+}
+
+/**
+ * Updates the package manifest, plus any explicitly configured JSON version
+ * properties, using the updater bundled into this action.
+ */
+async function updateNodejs(
+  project: ResolvedProject,
+  options: ActionOptions,
+): Promise<UpdateResult> {
+  const previousVersion = readNodejsPackageVersion(await readFile(project.projectPath, "utf8"), project.projectPath);
+  const version = deriveSemanticVersion(previousVersion, options);
+  const result = await updateNodeProjectVersion({
+    packagePath: project.projectPath,
+    version,
+    additionalVersionProperties: options.nodejsVersionProperties.map((property) => ({
+      ...property,
+      filePath: resolve(options.workingDirectory, property.filePath),
+    })),
+    validateSemver: !options.allowNonSemver,
+    dryRun: options.dryRun,
+  });
+  return {
+    engine: project.engine,
+    projectPath: project.projectPath,
+    ...(result.previousVersion === undefined ? {} : { previousVersion: result.previousVersion }),
+    version,
+    changed: result.changed,
+    fullData: { version, properties: result.properties },
+  };
 }
 
 async function updateGodot(
@@ -220,6 +252,25 @@ function normalizeRequestedVersion(options: ActionOptions): string | undefined {
     return version;
   }
   return formatSemanticVersion(applyLabels(parseSemanticVersion(version), options.releaseLabel, options.buildLabel));
+}
+
+function readNodejsPackageVersion(content: string, packagePath: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content) as unknown;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`${JSON.stringify(packagePath)} is not valid JSON: ${reason}`);
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${JSON.stringify(packagePath)} must contain a JSON object at its root.`);
+  }
+  const version = (parsed as Record<string, unknown>).version;
+  if (version === undefined) return undefined;
+  if (typeof version !== "string") {
+    throw new Error(`${JSON.stringify(packagePath)} must contain a string version property.`);
+  }
+  return version;
 }
 
 function readGodotVersion(content: string): string | undefined {

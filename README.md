@@ -1,6 +1,6 @@
 # Game Automated SemVer
 
-Configurable GitHub Action for updating Godot, Unity, and Unreal project versions. It calculates the next version, then uses the matching BigfootDS engine updater bundled into the action to make the engine-specific file change.
+Configurable GitHub Action for updating Godot, Node.js, Unity, and Unreal project versions. It calculates the next version, then uses the matching BigfootDS updater bundled into the action to make the project-specific file change.
 
 The action never creates commits, tags, or releases in the consuming repository. How you preserve and use the semver version string made by this action is up to you. 
 
@@ -46,6 +46,7 @@ To commit the change, stage the resolved `project-path` for your chosen engine, 
 The engine-specific recipe pages contain copy-and-paste workflows for the common project layouts and release flows:
 
 - [Godot recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Godot.md)
+- [Node.js, Electron and Capacitor recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Nodejs.md)
 - [Unity recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Unity.md)
 - [Unreal recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Unreal.md)
 
@@ -104,13 +105,15 @@ Create an initial SemVer tag, such as `v0.0.0`, before enabling this workflow. T
 
 ## Engines and project discovery
 
-`engine: auto` recursively searches up to five directories below `working-directory` for exactly one of these standard settings files:
+`engine: auto` recursively searches up to five directories below `working-directory` for exactly one of these standard game-project settings files:
 
 | Engine | Default settings file |
 | --- | --- |
 | Godot | `project.godot` |
 | Unity | `ProjectSettings/ProjectSettings.asset` |
 | Unreal | `Config/DefaultGame.ini` |
+
+Use `engine: nodejs` for Node.js projects. A repository may have a `package.json` for tools, a website, or an Electron game, so `auto` deliberately does not search for package manifests. It can infer Node.js only when `project-path` explicitly points to a `package.json`.
 
 Set both `engine` and `project-path` for monorepos, non-standard layouts, or when more than one project is present:
 
@@ -145,9 +148,22 @@ Supported `bump` values are `major`, `minor`, `patch`, and `none`; `quad` is als
     build-label: build.42
 ```
 
-Versions are strict SemVer by default. Use `allow-non-semver: true` only with an exact `version` input for Godot or Unreal; numeric bumps and labels require SemVer. Unity's updater needs a parseable semantic version to render its PlayerSettings fields.
+Versions are strict SemVer by default. Use `allow-non-semver: true` only with an exact `version` input for Godot, Node.js, or Unreal; numeric bumps and labels require SemVer. Unity's updater needs a parseable semantic version to render its PlayerSettings fields.
 
 ## Engine-specific options
+
+For Node.js, `nodejs-version-properties` is a JSON array of extra JSON version strings to keep aligned with `package.json`. Each item has a `filePath` relative to `working-directory`, an [RFC 6901 JSON Pointer](https://www.rfc-editor.org/rfc/rfc6901) in `jsonPointer`, and an optional `create: true` flag for a missing final property.
+
+```yaml
+- uses: BigfootDS/actions-game-automated-semver@v1
+  with:
+    engine: nodejs
+    bump: patch
+    nodejs-version-properties: >-
+      [{"filePath":"game-version.json","jsonPointer":"/version"},{"filePath":"package.json","jsonPointer":"/build/buildVersion","create":true}]
+```
+
+This keeps the package version and project-owned JSON metadata together. The Node.js updater intentionally does not edit JavaScript, TypeScript, YAML, Gradle, plist, XML or Xcode project files. The [Node.js recipes](https://github.com/BigfootDS/actions-game-automated-semver/blob/main/docs/examples/Nodejs.md) show Electron and Capacitor-friendly patterns.
 
 For Unreal, set a different INI destination when the version is not in the standard General Project Settings section:
 
@@ -238,6 +254,7 @@ Only `ProjectSettings/ProjectSettings.asset` is required to update a Unity versi
 The action bundle includes these exact updater releases:
 
 - `@bigfootds/godot-semver-updater@0.0.2`
+- `@bigfootds/nodejs-semver-updater@0.0.1`
 - `@bigfootds/unity-semver-updater@0.0.7`
 - `@bigfootds/unreal-semver-updater@0.0.2`
 
@@ -249,15 +266,15 @@ All inputs are optional. `version` takes precedence over `bump` when both are su
 
 | Input | Default | Description |
 | --- | --- | --- |
-| `engine` | `auto` | Game engine to update: `auto`, `godot`, `unity`, or `unreal`. |
-| `working-directory` | `.` | Directory containing the game project. |
-| `project-path` | — | Settings-file path relative to `working-directory`; auto-detected when omitted. |
+| `engine` | `auto` | Project type to update: `auto`, `godot`, `nodejs`, `unity`, or `unreal`. |
+| `working-directory` | `.` | Directory containing the game or Node.js project. |
+| `project-path` | — | Version-file path relative to `working-directory`; auto-detected when omitted. |
 | `version` | — | Exact version to write. |
 | `bump` | `patch` | Version component to increment: `major`, `minor`, `patch`, `quad` (Unity only), or `none`. |
 | `release-label` | — | SemVer prerelease label, such as `rc.1`. |
 | `build-label` | — | SemVer build label, such as `build.42`. |
 | `strip-leading-v` | `false` | Removes one leading `v` from `version`. |
-| `allow-non-semver` | `false` | Allows an exact non-SemVer `version` for Godot or Unreal. |
+| `allow-non-semver` | `false` | Allows an exact non-SemVer `version` for Godot, Node.js, or Unreal. |
 | `dry-run` | `false` | Calculates the update without writing the settings file. |
 | `unreal-section` | `/Script/EngineSettings.GeneralProjectSettings` | Unreal INI section containing the version. |
 | `unreal-key` | `ProjectVersion` | Unreal INI key containing the version. |
@@ -265,6 +282,7 @@ All inputs are optional. `version` takes precedence over `bump` when both are su
 | `unity-quad` | — | Optional non-negative fourth version component for Unity formats. |
 | `unity-treat-build-as-patch` | `true` | Couples Unity's numeric build and patch values. |
 | `unity-treat-revision-as-quad` | `true` | Couples Unity's numeric revision and quad values. |
+| `nodejs-version-properties` | `[]` | JSON array of additional Node.js JSON version properties with `filePath`, `jsonPointer`, and optional `create`. |
 
 ## Outputs
 

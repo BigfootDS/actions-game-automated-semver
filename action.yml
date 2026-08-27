@@ -1,12 +1,12 @@
 name: Game Automated SemVer
-description: "Bump or set a Godot, Unity, or Unreal project version through the corresponding BigfootDS updater package."
+description: "Bump or set a Godot, Node.js, Unity, or Unreal project version through the corresponding BigfootDS updater package."
 branding:
   icon: git-commit
   color: purple
 
 inputs:
   engine:
-    description: "Game engine to update: auto, godot, unity, or unreal."
+    description: "Project type to update: auto, godot, nodejs, unity, or unreal."
     required: false
     default: auto
   working-directory:
@@ -14,7 +14,7 @@ inputs:
     required: false
     default: .
   project-path:
-    description: "Path to the engine settings file, relative to working-directory. Auto-detected when omitted."
+    description: "Path to the version file, relative to working-directory. Auto-detected when omitted."
     required: false
   version:
     description: "Exact version to write. Takes precedence over bump."
@@ -34,7 +34,7 @@ inputs:
     required: false
     default: "false"
   allow-non-semver:
-    description: "Allow an exact Godot or Unreal version input that is not strict SemVer."
+    description: "Allow an exact Godot, Node.js, or Unreal version input that is not strict SemVer."
     required: false
     default: "false"
   dry-run:
@@ -64,6 +64,10 @@ inputs:
     description: "Keep Unity revision and quad numeric values coupled."
     required: false
     default: "true"
+  nodejs-version-properties:
+    description: "JSON array of additional Node.js JSON version properties with filePath, jsonPointer, and optional create fields."
+    required: false
+    default: "[]"
 
 outputs:
   version:
